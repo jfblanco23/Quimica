@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Balanceo Algebraico Interactivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- MathJax para LaTeX -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #f3e7fa 0%, #e6e6fa 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      color: #222;
+    }
+    #container {
+      background: #fff;
+      border-radius: 1.2em;
+      box-shadow: 0 4px 32px 0 #b39ddb33;
+      margin-top: 3vw;
+      padding: 2vw 3vw;
+      min-width: 340px;
+      max-width: 680px;
+      width: 99vw;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.3s;
+      cursor: pointer;
+      user-select: none;
+    }
+    .formula {
+      font-size: 2.5em;
+      margin: 1.3em 0 0.7em 0;
+      text-align: center;
+      letter-spacing: 0.02em;
+      min-height: 2.5em;
+      transition: color 0.2s;
+      width: 100%;
+    }
+    .paso {
+      font-size: 1.3em;
+      margin: 1.1em 0;
+      opacity: 0;
+      transition: opacity 0.5s;
+      min-height: 2.5em;
+      text-align: center;
+    }
+    .paso.visible {
+      opacity: 1;
+    }
+    .azul {
+      color: #3949ab;
+      font-weight: bold;
+    }
+    .elemento {
+      color: #8e24aa;
+      font-weight: bold;
+    }
+    .ejercicio-selector {
+      display: flex;
+      justify-content: center;
+      gap: 1.3em;
+      margin-bottom: 0.7em;
+    }
+    .ejercicio-btn {
+      background: #ede7f6;
+      color: #512da8;
+      border: none;
+      border-radius: 1em;
+      padding: 0.5em 1.2em;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ejercicio-btn.selected, .ejercicio-btn:hover {
+      background: #b39ddb;
+      color: #fff;
+    }
+    @media (max-width: 700px) {
+      #container { padding: 1em 0.5em; }
+      .formula { font-size: 1.2em; }
+      .paso { font-size: 1em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ejercicio-selector" id="ejSelector"></div>
+  <div id="container" onclick="nextPaso()">
+    <!-- Contenido generado dinámicamente -->
+  </div>
+  <script>
+    // Array de 10 ejercicios completos
+    const ejercicios = [
+      {
+        titulo: "Descomposición del clorato de potasio",
+        formulaSimple: `\\[\\mathrm{KClO}_3 \\to \\mathrm{KCl} + \\mathrm{O}_2\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{KClO}_3 \\to \\textcolor{#3949ab}{b}\\,\\mathrm{KCl} + \\textcolor{#3949ab}{c}\\,\\mathrm{O}_2\\]`,
+        elementos: [
+          { nombre: "K", igualdad: "a = b" },
+          { nombre: "Cl", igualdad: "a = b" },
+          { nombre: "O", igualdad: "3a = 2c" }
+        ],
+        sistema: [
+          "Eligiendo \\(a = 2\\):",
+          "\\(b = 2\\)",
+          "\\(3a = 2c \\Rightarrow 3 \\times 2 = 2c \\Rightarrow c = 3\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{2}\\,\\mathrm{KClO}_3 \\to \\textcolor{#3949ab}{2}\\,\\mathrm{KCl} + \\textcolor{#3949ab}{3}\\,\\mathrm{O}_2\\]`
+      },
+      {
+        titulo: "Formación del amoníaco",
+        formulaSimple: `\\[\\mathrm{N}_2 + \\mathrm{H}_2 \\to \\mathrm{NH}_3\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{N}_2 + \\textcolor{#3949ab}{b}\\,\\mathrm{H}_2 \\to \\textcolor{#3949ab}{c}\\,\\mathrm{NH}_3\\]`,
+        elementos: [
+          { nombre: "N", igualdad: "2a = c" },
+          { nombre: "H", igualdad: "2b = 3c" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 2\\):",
+          "\\(2a = 2 \\Rightarrow a = 1\\)",
+          "\\(2b = 3 \\times 2 = 6 \\Rightarrow b = 3\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{1}\\,\\mathrm{N}_2 + \\textcolor{#3949ab}{3}\\,\\mathrm{H}_2 \\to \\textcolor{#3949ab}{2}\\,\\mathrm{NH}_3\\]`
+      },
+      {
+        titulo: "Descomposición del bicarbonato de sodio",
+        formulaSimple: `\\[\\mathrm{NaHCO}_3 \\to \\mathrm{Na}_2CO_3 + \\mathrm{H}_2O + \\mathrm{CO}_2\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{NaHCO}_3 \\to \\textcolor{#3949ab}{b}\\,\\mathrm{Na}_2CO_3 + \\textcolor{#3949ab}{c}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{d}\\,\\mathrm{CO}_2\\]`,
+        elementos: [
+          { nombre: "Na", igualdad: "a = 2b" },
+          { nombre: "H", igualdad: "a = 2c" },
+          { nombre: "C", igualdad: "a = b + d" },
+          { nombre: "O", igualdad: "3a = 3b + c + 2d" }
+        ],
+        sistema: [
+          "Eligiendo \\(a = 2\\):",
+          "\\(2b = 2 \\Rightarrow b = 1\\)",
+          "\\(2c = 2 \\Rightarrow c = 1\\)",
+          "\\(a = b + d \\Rightarrow 2 = 1 + d \\Rightarrow d = 1\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{2}\\,\\mathrm{NaHCO}_3 \\to \\textcolor{#3949ab}{1}\\,\\mathrm{Na}_2CO_3 + \\textcolor{#3949ab}{1}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{1}\\,\\mathrm{CO}_2\\]`
+      },
+      {
+        titulo: "Óxido férrico con agua",
+        formulaSimple: `\\[\\mathrm{Fe}_2O_3 + \\mathrm{H}_2O \\to \\mathrm{Fe(OH)}_3\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{Fe}_2O_3 + \\textcolor{#3949ab}{b}\\,\\mathrm{H}_2O \\to \\textcolor{#3949ab}{c}\\,\\mathrm{Fe(OH)}_3\\]`,
+        elementos: [
+          { nombre: "Fe", igualdad: "2a = c" },
+          { nombre: "O", igualdad: "3a + b = 3c" },
+          { nombre: "H", igualdad: "2b = 3c" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 2\\):",
+          "\\(2a = 2 \\Rightarrow a = 1\\)",
+          "\\(2b = 3 \\times 2 = 6 \\Rightarrow b = 3\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{1}\\,\\mathrm{Fe}_2O_3 + \\textcolor{#3949ab}{3}\\,\\mathrm{H}_2O \\to \\textcolor{#3949ab}{2}\\,\\mathrm{Fe(OH)}_3\\]`
+      },
+      {
+        titulo: "Sodio y agua",
+        formulaSimple: `\\[\\mathrm{H}_2O + \\mathrm{Na} \\to \\mathrm{NaOH} + \\mathrm{H}_2\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{b}\\,\\mathrm{Na} \\to \\textcolor{#3949ab}{c}\\,\\mathrm{NaOH} + \\textcolor{#3949ab}{d}\\,\\mathrm{H}_2\\]`,
+        elementos: [
+          { nombre: "Na", igualdad: "b = c" },
+          { nombre: "O", igualdad: "a = c" },
+          { nombre: "H", igualdad: "2a = c + 2d" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 2\\):",
+          "\\(b = 2\\), \\(a = 2\\), \\(2a = 2 + 2d \\Rightarrow 4 = 2 + 2d \\Rightarrow d = 1\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{2}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{2}\\,\\mathrm{Na} \\to \\textcolor{#3949ab}{2}\\,\\mathrm{NaOH} + \\textcolor{#3949ab}{1}\\,\\mathrm{H}_2\\]`
+      },
+      // Nuevos ejercicios nivel 3º ESO
+      {
+        titulo: "Combustión del etanol",
+        formulaSimple: `\\[\\mathrm{C}_2H_5OH + \\mathrm{O}_2 \\to \\mathrm{CO}_2 + \\mathrm{H}_2O\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{C}_2H_5OH + \\textcolor{#3949ab}{b}\\,\\mathrm{O}_2 \\to \\textcolor{#3949ab}{c}\\,\\mathrm{CO}_2 + \\textcolor{#3949ab}{d}\\,\\mathrm{H}_2O\\]`,
+        elementos: [
+          { nombre: "C", igualdad: "2a = c" },
+          { nombre: "H", igualdad: "6a = 2d" },
+          { nombre: "O", igualdad: "a + 2b = 2c + d" }
+        ],
+        sistema: [
+          "Eligiendo \\(a = 1\\):",
+          "\\(2a = c \\Rightarrow c = 2\\)",
+          "\\(6a = 2d \\Rightarrow d = 3\\)",
+          "\\(1 + 2b = 2 \\times 2 + 3 \\Rightarrow 1 + 2b = 7 \\Rightarrow 2b = 6 \\Rightarrow b = 3\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{1}\\,\\mathrm{C}_2H_5OH + \\textcolor{#3949ab}{3}\\,\\mathrm{O}_2 \\to \\textcolor{#3949ab}{2}\\,\\mathrm{CO}_2 + \\textcolor{#3949ab}{3}\\,\\mathrm{H}_2O\\]`
+      },
+      {
+        titulo: "Neutralización de ácido clorhídrico y hidróxido de sodio",
+        formulaSimple: `\\[\\mathrm{HCl} + \\mathrm{NaOH} \\to \\mathrm{NaCl} + \\mathrm{H}_2O\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{HCl} + \\textcolor{#3949ab}{b}\\,\\mathrm{NaOH} \\to \\textcolor{#3949ab}{c}\\,\\mathrm{NaCl} + \\textcolor{#3949ab}{d}\\,\\mathrm{H}_2O\\]`,
+        elementos: [
+          { nombre: "Na", igualdad: "b = c" },
+          { nombre: "Cl", igualdad: "a = c" },
+          { nombre: "H", igualdad: "a + b = 2d" },
+          { nombre: "O", igualdad: "b = d" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 1\\):",
+          "\\(b = 1\\)",
+          "\\(a = 1\\)",
+          "\\(b = d \\Rightarrow d = 1\\)",
+          "\\(a + b = 2d \\Rightarrow 1 + 1 = 2 \\times 1\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{1}\\,\\mathrm{HCl} + \\textcolor{#3949ab}{1}\\,\\mathrm{NaOH} \\to \\textcolor{#3949ab}{1}\\,\\mathrm{NaCl} + \\textcolor{#3949ab}{1}\\,\\mathrm{H}_2O\\]`
+      },
+      {
+        titulo: "Síntesis del óxido de aluminio",
+        formulaSimple: `\\[\\mathrm{Al} + \\mathrm{O}_2 \\to \\mathrm{Al}_2O_3\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{Al} + \\textcolor{#3949ab}{b}\\,\\mathrm{O}_2 \\to \\textcolor{#3949ab}{c}\\,\\mathrm{Al}_2O_3\\]`,
+        elementos: [
+          { nombre: "Al", igualdad: "a = 2c" },
+          { nombre: "O", igualdad: "2b = 3c" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 2\\):",
+          "\\(a = 4\\)",
+          "\\(2b = 3 \\times 2 = 6 \\Rightarrow b = 3\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{4}\\,\\mathrm{Al} + \\textcolor{#3949ab}{3}\\,\\mathrm{O}_2 \\to \\textcolor{#3949ab}{2}\\,\\mathrm{Al}_2O_3\\]`
+      },
+      {
+        titulo: "Reacción del hierro con ácido sulfúrico",
+        formulaSimple: `\\[\\mathrm{Fe} + \\mathrm{H}_2SO_4 \\to \\mathrm{FeSO_4} + \\mathrm{H}_2\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{Fe} + \\textcolor{#3949ab}{b}\\,\\mathrm{H}_2SO_4 \\to \\textcolor{#3949ab}{c}\\,\\mathrm{FeSO_4} + \\textcolor{#3949ab}{d}\\,\\mathrm{H}_2\\]`,
+        elementos: [
+          { nombre: "Fe", igualdad: "a = c" },
+          { nombre: "S", igualdad: "b = c" },
+          { nombre: "O", igualdad: "4b = 4c" },
+          { nombre: "H", igualdad: "2b = 2d" }
+        ],
+        sistema: [
+          "Eligiendo \\(c = 1\\):",
+          "\\(a = 1\\)",
+          "\\(b = 1\\)",
+          "\\(2b = 2d \\Rightarrow 2 = 2d \\Rightarrow d = 1\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{1}\\,\\mathrm{Fe} + \\textcolor{#3949ab}{1}\\,\\mathrm{H}_2SO_4 \\to \\textcolor{#3949ab}{1}\\,\\mathrm{FeSO_4} + \\textcolor{#3949ab}{1}\\,\\mathrm{H}_2\\]`
+      },
+      {
+        titulo: "Descomposición del peróxido de hidrógeno",
+        formulaSimple: `\\[\\mathrm{H}_2O_2 \\to \\mathrm{H}_2O + \\mathrm{O}_2\\]`,
+        formulaCoef: `\\[\\textcolor{#3949ab}{a}\\,\\mathrm{H}_2O_2 \\to \\textcolor{#3949ab}{b}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{c}\\,\\mathrm{O}_2\\]`,
+        elementos: [
+          { nombre: "H", igualdad: "2a = 2b" },
+          { nombre: "O", igualdad: "2a = b + 2c" }
+        ],
+        sistema: [
+          "Eligiendo \\(a = 2\\):",
+          "\\(2b = 4 \\Rightarrow b = 2\\)",
+          "\\(2a = b + 2c \\Rightarrow 4 = 2 + 2c \\Rightarrow 2c = 2 \\Rightarrow c = 1\\)"
+        ],
+        final: `\\[\\textcolor{#3949ab}{2}\\,\\mathrm{H}_2O_2 \\to \\textcolor{#3949ab}{2}\\,\\mathrm{H}_2O + \\textcolor{#3949ab}{1}\\,\\mathrm{O}_2\\]`
+      }
+    ];
+
+    let ejercicioActual = 0, pasoActual = 0, elementoPaso = 0, sistemaPaso = 0, modo = "simple";
+
+    function renderSelector() {
+      const ejSelector = document.getElementById('ejSelector');
+      ejSelector.innerHTML = ejercicios.map((ej, i) =>
+        `<button class="ejercicio-btn${i === ejercicioActual ? ' selected' : ''}" onclick="event.stopPropagation();cambiarEjercicio(${i})">${i+1}</button>`
+      ).join('');
+    }
+
+    function renderEjercicio() {
+      const cont = document.getElementById('container');
+      cont.innerHTML = `
+        <div style="font-size:1.1em;color:#7b1fa2;margin-bottom:0.2em;text-align:center;">
+          <b>${ejercicios[ejercicioActual].titulo}</b>
+        </div>
+        <div class="formula" id="formula"></div>
+        <div id="pasos"></div>
+      `;
+      document.getElementById('formula').innerHTML = ejercicios[ejercicioActual].formulaSimple;
+      MathJax.typesetPromise();
+      pasoActual = 0;
+      elementoPaso = 0;
+      sistemaPaso = 0;
+      modo = "simple";
+    }
+
+    function nextPaso() {
+      const ej = ejercicios[ejercicioActual];
+      const pasosDiv = document.getElementById('pasos');
+      if (modo === "simple") {
+        // Pasa a mostrar la fórmula con coeficientes
+        document.getElementById('formula').innerHTML = ej.formulaCoef;
+        MathJax.typesetPromise();
+        modo = "coef";
+        return;
+      }
+      if (modo === "coef") {
+        // Empieza a mostrar los elementos uno a uno
+        if (elementoPaso < ej.elementos.length) {
+          const paso = document.createElement('div');
+          paso.className = 'paso';
+          paso.innerHTML = `<span class="elemento">${ej.elementos[elementoPaso].nombre}:</span>`;
+          pasosDiv.appendChild(paso);
+          setTimeout(() => paso.classList.add('visible'), 30);
+          MathJax.typesetPromise();
+          modo = "elemento";
+          return;
+        } else {
+          // Todos los elementos mostrados, pasa al sistema
+          elementoPaso = 0;
+          modo = "sistema";
+          nextPaso();
+          return;
+        }
+      }
+      if (modo === "elemento") {
+        // Añade la igualdad al último elemento mostrado
+        const pasosDivs = pasosDiv.querySelectorAll('.paso');
+        const paso = pasosDivs[pasosDivs.length - 1];
+        paso.innerHTML = `<span class="elemento">${ej.elementos[elementoPaso].nombre}:</span> ${ej.elementos[elementoPaso].igualdad}`;
+        MathJax.typesetPromise();
+        elementoPaso++;
+        modo = "coef";
+        return;
+      }
+      if (modo === "sistema") {
+        // Muestra los pasos del sistema
+        if (sistemaPaso < ej.sistema.length) {
+          const paso = document.createElement('div');
+          paso.className = 'paso';
+          paso.innerHTML = ej.sistema[sistemaPaso];
+          pasosDiv.appendChild(paso);
+          setTimeout(() => paso.classList.add('visible'), 30);
+          MathJax.typesetPromise();
+          sistemaPaso++;
+          return;
+        } else {
+          // Muestra la ecuación final ajustada
+          const paso = document.createElement('div');
+          paso.className = 'paso';
+          paso.innerHTML = ej.final;
+          pasosDiv.appendChild(paso);
+          setTimeout(() => paso.classList.add('visible'), 30);
+          MathJax.typesetPromise();
+          modo = "fin";
+          return;
+        }
+      }
+    }
+
+    function cambiarEjercicio(idx) {
+      ejercicioActual = idx;
+      renderSelector();
+      renderEjercicio();
+    }
+
+    renderSelector();
+    renderEjercicio();
+
+    // Avanza con espacio o enter (opcional)
+    document.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') nextPaso();
+    });
+  </script>
+</body>
+</html>
